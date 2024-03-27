@@ -25,4 +25,5 @@ Any kind of contribution to make this bot better is welcome.
 
 ## Thanks
 
+- [bitbonk](https://github.com/bitbonk) for building this project and transfer it to us.
 - [Guillaume Lacasa](https://github.com/glacasa) ([@glacasa@mamot.fr](https://mamot.fr/@glacasa) on Mastodon) for building and maintaining [Mastonet](https://github.com/glacasa/mastonet)
