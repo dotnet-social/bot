@@ -4,6 +4,7 @@ using Mastonet;
 using Mastonet.Entities;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
+using System.Diagnostics;
 
 namespace DotNetSocialBot.Function;
 
@@ -27,15 +28,17 @@ public class RepostOnMastodon
     [Function(nameof(RepostOnMastodon))]
     public async Task RunAsync([TimerTrigger("0 * * * * *")] TimerInfo myTimer)
     {
-        _logger.LogInformation(
-            "Started function {FunctionName} at {StartTime}", nameof(RepostOnMastodon),
-            DateTime.Now);
+        var sw = Stopwatch.StartNew();
+
         _currentUser = await _client.GetCurrentUser();
         await HandleNotifications();
         await BoostTags();
-        _logger.LogInformation(
-            "Completed function {FunctionName} at {EndTime}", nameof(RepostOnMastodon),
-            DateTime.Now);
+
+        sw.Stop();
+        _logger.LogInformation("Completed function {FunctionName} at {EndTime} ({Duration}ms)",
+            nameof(RepostOnMastodon),
+            DateTime.Now,
+            (int)sw.Elapsed.TotalMilliseconds);
     }
 
     private async Task HandleNotifications()
@@ -56,7 +59,11 @@ public class RepostOnMastodon
         finally
         {
             await _client.ClearNotifications();
-            _logger.LogInformation("Cleared all notifications");
+            if (notifications.Count > 0)
+            {
+                // approx, we could have missed some notification between GetNotifications() and Clear()
+                _logger.LogInformation("Handled {Count} notifications", notifications.Count);
+            }
         }
     }
 
