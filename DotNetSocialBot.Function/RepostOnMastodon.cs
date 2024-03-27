@@ -17,7 +17,6 @@ public class RepostOnMastodon
     public RepostOnMastodon(ILoggerFactory loggerFactory)
     {
         _logger = loggerFactory.CreateLogger<RepostOnMastodon>();
-        _logger.LogInformation("Initializing function {FunctionName}", nameof(RepostOnMastodon));
         var handler = new HttpClientHandler();
 #if DEBUG // TODO: find out why certs are not accepted locally
         handler.ServerCertificateCustomValidationCallback = (_, _, _, _) => true;
@@ -28,17 +27,9 @@ public class RepostOnMastodon
     [Function(nameof(RepostOnMastodon))]
     public async Task RunAsync([TimerTrigger("0 * * * * *")] TimerInfo myTimer)
     {
-        var sw = Stopwatch.StartNew();
-
         _currentUser = await _client.GetCurrentUser();
         await HandleNotifications();
         await BoostTags();
-
-        sw.Stop();
-        _logger.LogInformation("Completed function {FunctionName} at {EndTime} ({Duration}ms)",
-            nameof(RepostOnMastodon),
-            DateTime.Now,
-            (int)sw.Elapsed.TotalMilliseconds);
     }
 
     private async Task HandleNotifications()
