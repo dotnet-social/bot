@@ -71,7 +71,8 @@ public class RepostOnMastodon
             {
                 var statusToBoost = await _client.GetStatus(statusIdToBoost);
                 if (statusToBoost.IsReply()
-                    || statusToBoost.Account.Bot == true
+                    // we allow boosting bot posts, fixes #1
+                    //|| statusToBoost.Account.Bot == true
                     || statusToBoost.Account.Id == _currentUser!.Id
                     || statusToBoost.Reblogged == true)
                 {
