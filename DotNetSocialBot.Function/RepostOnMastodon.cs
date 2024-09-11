@@ -93,6 +93,12 @@ public class RepostOnMastodon
                 }
             }
         }
+        else
+        {
+            _logger.LogInformation("No boost request message detected on message from @{Account} on {PostTime}",
+                notification.Account.AccountName,
+                notification.Status?.CreatedAt);
+        }
     }
 
     private async Task BoostDirectMention(Notification notification)
