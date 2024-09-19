@@ -17,6 +17,7 @@ var host = new HostBuilder()
             var defaultRule = options.Rules.FirstOrDefault(rule => rule.ProviderName == "Microsoft.Extensions.Logging.ApplicationInsights.ApplicationInsightsLoggerProvider");
             if (defaultRule is not null)
             {
+                defaultRule.ToString();
                 options.Rules.Remove(defaultRule);
             }
         });
