@@ -44,6 +44,7 @@ public class RepostOnMastodon
         try
         {
             foreach (var notification in notifications.Where(n => n.Status?.Account?.Bot != true))
+            {
                 if (!notification.Status.IsReply())
                 {
                     if (await BoostDirectMention(notification))
@@ -58,10 +59,12 @@ public class RepostOnMastodon
                         count++;
                     }
                 }
+            }
         }
         finally
         {
             await _client.ClearNotifications();
+
             if (notifications.Count > 0)
             {
                 // approx, we could have missed some notification between GetNotifications() and Clear()
@@ -77,6 +80,7 @@ public class RepostOnMastodon
         var document = new HtmlDocument();
         document.LoadHtml(notification.Status?.Content);
         var replyText = document.DocumentNode.InnerText;
+
         if (Config.ValidBoostRequestMessages.Any(m =>
                 replyText.EndsWith(m, StringComparison.InvariantCultureIgnoreCase)))
         {
@@ -92,6 +96,7 @@ public class RepostOnMastodon
                 {
                     await _client.PublishStatus("That's nothing I can boost. 😔",
                         replyStatusId: notification.Status?.Id);
+
                     _logger.LogInformation("Denied boost request from @{Account} from {PostTime}",
                         notification.Account.AccountName, notification.Status?.CreatedAt);
 
@@ -112,6 +117,9 @@ public class RepostOnMastodon
             }
             else
             {
+                _logger.LogWarning("No original message found to boost from request by @{RequesterAccount} at {RequestTime}",
+                    notification.Account.AccountName,
+                    notification.Status?.CreatedAt);
                 return false;
             }
         }
