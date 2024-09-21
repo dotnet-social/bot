@@ -25,27 +25,39 @@ public class RepostOnMastodon
     }
 
     [Function(nameof(RepostOnMastodon))]
-    public async Task RunAsync([TimerTrigger("0 * * * * *")] TimerInfo myTimer)
+    public async Task RunAsync([TimerTrigger("0 */2 * * * *")] TimerInfo myTimer)
     {
         _currentUser = await _client.GetCurrentUser();
-        await HandleNotifications();
-        await BoostTags();
+        var count = await HandleNotifications();
+        count += await BoostTags();
+
+        _logger.LogInformation("Boosted {Count} posts", count);
     }
 
-    private async Task HandleNotifications()
+    private async Task<int> HandleNotifications()
     {
         var notifications = await _client
-            .GetNotifications(excludeTypes: NotificationType.Follow | NotificationType.Favourite |
-                                            NotificationType.Reblog);
+            .GetNotifications(excludeTypes: NotificationType.Follow | NotificationType.Favourite | NotificationType.Reblog);
+
+        var count = 0;
 
         try
         {
-            foreach (var notification in notifications
-                         .Where(n => n.Status?.Account?.Bot != true))
+            foreach (var notification in notifications.Where(n => n.Status?.Account?.Bot != true))
                 if (!notification.Status.IsReply())
-                    await BoostDirectMention(notification);
+                {
+                    if (await BoostDirectMention(notification))
+                    {
+                        count++;
+                    }
+                }
                 else
-                    await BoostBoostRequest(notification);
+                {
+                    if (await BoostBoostRequest(notification))
+                    {
+                        count++;
+                    }
+                }
         }
         finally
         {
@@ -56,9 +68,11 @@ public class RepostOnMastodon
                 _logger.LogInformation("Handled {Count} notifications", notifications.Count);
             }
         }
+
+        return count;
     }
 
-    private async Task BoostBoostRequest(Notification notification)
+    private async Task<bool> BoostBoostRequest(Notification notification)
     {
         var document = new HtmlDocument();
         document.LoadHtml(notification.Status?.Content);
@@ -80,6 +94,8 @@ public class RepostOnMastodon
                         replyStatusId: notification.Status?.Id);
                     _logger.LogInformation("Denied boost request from @{Account} from {PostTime}",
                         notification.Account.AccountName, notification.Status?.CreatedAt);
+
+                    return false;
                 }
                 else
                 {
@@ -90,7 +106,13 @@ public class RepostOnMastodon
                         statusToBoost.CreatedAt,
                         notification.Account.AccountName,
                         notification.Status?.CreatedAt);
+
+                    return true;
                 }
+            }
+            else
+            {
+                return false;
             }
         }
         else
@@ -98,10 +120,12 @@ public class RepostOnMastodon
             _logger.LogInformation("No boost request message detected on message from @{Account} on {PostTime}",
                 notification.Account.AccountName,
                 notification.Status?.CreatedAt);
+
+            return false;
         }
     }
 
-    private async Task BoostDirectMention(Notification notification)
+    private async Task<bool> BoostDirectMention(Notification notification)
     {
         var statusId = notification.Status?.Id;
         if (statusId is null)
@@ -110,7 +134,7 @@ public class RepostOnMastodon
                 "Could not determine ID of status that mentioned me, ignoring post by @{Account} from {PostTime}",
                 notification.Status?.Account.AccountName,
                 notification.Status?.CreatedAt);
-            return;
+            return false;
         }
 
         var statusVisibility = notification.Status?.Visibility;
@@ -120,7 +144,7 @@ public class RepostOnMastodon
                 "Could not determine visibility of status that mentioned me, ignoring post by @{Account} from {PostTime}",
                 notification.Status?.Account.AccountName,
                 notification.Status?.CreatedAt);
-            return;
+            return false;
         }
 
         if (statusVisibility == Visibility.Direct)
@@ -129,19 +153,22 @@ public class RepostOnMastodon
                 "Ignoring direct message post by @{Account} from {PostTime}",
                 notification.Status?.Account.AccountName,
                 notification.Status?.CreatedAt);
-            return;
+            return false;
         }
 
         await _client.Reblog(statusId);
         _logger.LogInformation("Boosted post that mentioned me by @{Account} from {PostTime}",
             notification.Account.AccountName,
             notification.Status?.CreatedAt);
+        return true;
     }
 
-    private async Task BoostTags()
+    private async Task<int> BoostTags()
     {
         var followedTags = await _client.ViewFollowedTags();
-        if (!followedTags.Any()) return;
+        if (!followedTags.Any()) return 0;
+
+        var count = 0;
 
         foreach (var status in (await _client.GetHomeTimeline(new ArrayOptions { Limit = 100 })).Where(s =>
                      !s.IsReply()
@@ -159,6 +186,9 @@ public class RepostOnMastodon
                 status.Account.AccountName,
                 status.CreatedAt,
                 followedTagsInPost);
+            count++;
         }
+
+        return count;
     }
 }
