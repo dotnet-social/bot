@@ -104,7 +104,7 @@ public class RepostOnMastodon
                         replyStatusId: notification.Status?.Id);
 
                     _logger.LogInformation(
-                        "Denied boost request from @{Account} from {PostTime} ({IsReply}; {StatusAccountId}; {CurrentUserId}; {Reblogged}",
+                        "Denied boost request from @{Account} on {PostTime} ({IsReply}; {StatusAccountId}; {CurrentUserId}; {Reblogged}",
                         notification.Account.AccountName,
                         notification.Status?.CreatedAt,
                         statusToBoost.IsReply(),
