@@ -4,7 +4,6 @@ using Mastonet;
 using Mastonet.Entities;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
-using System.Diagnostics;
 
 namespace DotNetSocialBot.Function;
 
@@ -25,9 +24,10 @@ public class RepostOnMastodon
     }
 
     [Function(nameof(RepostOnMastodon))]
-    public async Task RunAsync([TimerTrigger("0 */2 * * * *")] TimerInfo myTimer)
+    public async Task RunAsync([TimerTrigger("0 */5 * * * *")] TimerInfo myTimer)
     {
         _currentUser = await _client.GetCurrentUser();
+
         var count = await HandleNotifications();
         count += await BoostTags();
 
@@ -63,7 +63,13 @@ public class RepostOnMastodon
         }
         finally
         {
-            await _client.ClearNotifications();
+            // trying to understand why we miss some notifications??
+            // we try to dismission notification one by one to not miss any
+            //_client.ClearNotifications();
+            foreach(var notification in notifications)
+            {
+                await _client.DismissNotification(notification.Id);
+            }
 
             if (notifications.Count > 0)
             {
