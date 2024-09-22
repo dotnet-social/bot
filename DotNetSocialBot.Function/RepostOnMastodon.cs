@@ -103,8 +103,15 @@ public class RepostOnMastodon
                     await _client.PublishStatus("That's nothing I can boost. 😔",
                         replyStatusId: notification.Status?.Id);
 
-                    _logger.LogInformation("Denied boost request from @{Account} from {PostTime}",
-                        notification.Account.AccountName, notification.Status?.CreatedAt);
+                    _logger.LogInformation(
+                        "Denied boost request from @{Account} from {PostTime} ({IsReply}; {StatusAccountId}; {CurrentUserId}; {Reblogged}",
+                        notification.Account.AccountName,
+                        notification.Status?.CreatedAt,
+                        statusToBoost.IsReply(),
+                        statusToBoost.Account.Id,
+                        _currentUser!.Id,
+                        statusToBoost.Reblogged
+                        );
 
                     return false;
                 }
