@@ -66,7 +66,7 @@ public class RepostOnMastodon
             // trying to understand why we miss some notifications??
             // we try to dismission notification one by one to not miss any
             //_client.ClearNotifications();
-            foreach(var notification in notifications)
+            foreach (var notification in notifications)
             {
                 await _client.DismissNotification(notification.Id);
             }
@@ -83,8 +83,14 @@ public class RepostOnMastodon
 
     private async Task<bool> BoostBoostRequest(Notification notification)
     {
+        var html = notification.Status?.Content;
+        if (html == null)
+        {
+            return false;
+        }
+
         var document = new HtmlDocument();
-        document.LoadHtml(notification.Status?.Content);
+        document.LoadHtml(html);
         var replyText = document.DocumentNode.InnerText;
 
         if (Config.ValidBoostRequestMessages.Any(m =>
